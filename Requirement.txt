@@ -1,6 +1,6 @@
 Requirement
 
-streamlit
+streamlit==0.2.37
 yfinance
 pandas
 numpy
