@@ -1,3 +1,10 @@
+import os
+
+try:
+    import yfinance
+except ModuleNotFoundError:
+    os.system("pip install yfinance pandas numpy plotly ta scikit-learn")
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
