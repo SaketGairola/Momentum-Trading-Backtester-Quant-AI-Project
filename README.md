@@ -1,1 +1,8 @@
-# Momentum-Trading-Backtester-Quant-AI-Project
+streamlit 
+yfinance 
+pandas 
+numpy 
+xgboost 
+plotly 
+ta 
+scikit-learn
