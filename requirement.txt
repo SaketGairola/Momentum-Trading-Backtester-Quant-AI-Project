@@ -1,9 +1,0 @@
-streamlit
-yfinance==0.2.37
-pandas
-numpy
-plotly
-scipy
-xgboost
-ta
-scikit-learn
