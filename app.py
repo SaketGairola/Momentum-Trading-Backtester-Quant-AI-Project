@@ -1,19 +1,3 @@
-import sys
-import subprocess
-
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-try:
-    import yfinance
-except ModuleNotFoundError:
-    install("yfinance")
-    install("pandas")
-    install("numpy")
-    install("plotly")
-    install("ta")
-    install("scikit-learn")
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
