@@ -62,6 +62,9 @@ def load_data(tkr, d):
     return df
 
 data = load_data(ticker, days)
+if data.empty and ticker.endswith(".NS"):
+    st.warning("⚠️ NSE data unreliable on Yahoo. Switching to fallback ticker (AAPL).")
+    data = load_data("AAPL", days)
 if data.empty:
     st.error("No data returned. The market might be closed or the ticker is invalid.")
     st.stop()
