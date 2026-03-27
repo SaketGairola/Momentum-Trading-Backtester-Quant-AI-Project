@@ -39,13 +39,22 @@ with st.sidebar:
 
 # --- 3. DATA ENGINE & FEATURE ENGINEERING ---
 @st.cache_data(show_spinner="Fetching Live NSE Data...")
+import time
+
 def load_data(tkr, d):
     if d > 5:
         interval = "5m"
     else:
         interval = "1m"
 
-    df = yf.download(tkr, period=f"{d}d", interval=interval, progress=False)
+    for _ in range(3):  # retry 3 times
+        try:
+            df = yf.download(tkr, period=f"{d}d", interval=interval, progress=False)
+            if not df.empty:
+                break
+        except:
+            df = pd.DataFrame()
+        time.sleep(1)
 
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
