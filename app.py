@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+import requests
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from ta.momentum import RSIIndicator
