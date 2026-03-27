@@ -8,3 +8,4 @@ xgboost
 ta
 scikit-learn
 nsepython
+requests
