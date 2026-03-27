@@ -1,15 +1,13 @@
 import streamlit as st
+import yfinance as yf
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-import requests
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from ta.momentum import RSIIndicator
 from ta.trend import SMAIndicator
 from sklearn.metrics import accuracy_score
-from nsepython import equity_history
-import datetime
 
 # --- 1. CONFIG & UI SETUP ---
 st.set_page_config(page_title="Live ML Backtester | IIMA Quant", page_icon="⚡", layout="wide")
@@ -19,7 +17,7 @@ st.caption("Live NSE 1-Min Data | Machine Learning Execution | #QuantFinance")
 # --- 2. SIDEBAR ---
 with st.sidebar:
     st.header("⚙️ 1. Asset & Timeframe")
-    ticker = st.selectbox("NSE Ticker", ["RELIANCE", "IRCON", "JWL"])
+    ticker = st.selectbox("NSE Ticker", ["RELIANCE.NS", "IRCON.NS", "JWL.NS", "^NSEI"])
     days = st.slider("Lookback Period (Days)", 1, 7, 7, help="Yahoo Finance 1m limit is 7 days.")
     
     st.markdown("---")
@@ -40,54 +38,17 @@ with st.sidebar:
         st.cache_data.clear()
 
 # --- 3. DATA ENGINE & FEATURE ENGINEERING ---
-
-@st.cache_data(show_spinner="Fetching NSE Data...")
-def load_data(symbol, days):
-
-    url = f"https://www.nseindia.com/api/historical/cm/equity?symbol={symbol}&series=[%22EQ%22]"
-
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br"
-    }
-
-    session = requests.Session()
-
-    try:
-        # Step 1: get cookies
-        session.get("https://www.nseindia.com", headers=headers)
-
-        # Step 2: get data
-        response = session.get(url, headers=headers)
-        data = response.json()
-
-        df = pd.DataFrame(data["data"])
-
-        df['Close'] = df['CH_CLOSING_PRICE']
-        df['Volume'] = df['CH_TOT_TRADED_QTY']
-        df.index = pd.to_datetime(df['CH_TIMESTAMP'])
-
-        df = df[['Close', 'Volume']].sort_index()
-
-        return df
-
-    except Exception as e:
-        st.warning(f"⚠️ NSE blocked request → using simulated data")
-
-        n = 300
-        idx = pd.date_range(end=pd.Timestamp.now(), periods=n, freq="5min")
-
-        price = 2500 + np.cumsum(np.random.normal(0, 2, n))
-        volume = np.random.randint(1000, 5000, n)
-
-        return pd.DataFrame({
-            "Close": price,
-            "Volume": volume
-        }, index=idx)
+@st.cache_data(show_spinner="Fetching Live NSE Data...")
+def load_data(tkr, d):
+    df = yf.download(tkr, period=f"{d}d", interval="1m", progress=False)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    return df
 
 data = load_data(ticker, days)
-
+if data.empty:
+    st.error("No data returned. The market might be closed or the ticker is invalid.")
+    st.stop()
 
 df = data[['Close', 'Volume']].copy()
 df['ret'] = df['Close'].pct_change()
