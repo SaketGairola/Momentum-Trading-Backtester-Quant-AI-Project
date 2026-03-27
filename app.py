@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+import time
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from ta.momentum import RSIIndicator
@@ -39,7 +40,6 @@ with st.sidebar:
 
 # --- 3. DATA ENGINE & FEATURE ENGINEERING ---
 @st.cache_data(show_spinner="Fetching Live NSE Data...")
-import time
 
 def load_data(tkr, d):
     if d > 5:
