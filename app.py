@@ -39,31 +39,40 @@ with st.sidebar:
         st.cache_data.clear()
 
 # --- 3. DATA ENGINE & FEATURE ENGINEERING ---
+
 @st.cache_data(show_spinner="Fetching NSE Data...")
 def load_data(symbol, days):
-    end = datetime.date.today()
-    start = end - datetime.timedelta(days=days)
+
+    url = f"https://www.nseindia.com/api/historical/cm/equity?symbol={symbol}&series=[%22EQ%22]"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br"
+    }
+
+    session = requests.Session()
 
     try:
-        data = equity_history(
-            symbol,
-            "EQ",
-            start.strftime("%d-%m-%Y"),
-            end.strftime("%d-%m-%Y")
-        )
+        # Step 1: get cookies
+        session.get("https://www.nseindia.com", headers=headers)
 
-        df = pd.DataFrame(data)
+        # Step 2: get data
+        response = session.get(url, headers=headers)
+        data = response.json()
+
+        df = pd.DataFrame(data["data"])
 
         df['Close'] = df['CH_CLOSING_PRICE']
         df['Volume'] = df['CH_TOT_TRADED_QTY']
         df.index = pd.to_datetime(df['CH_TIMESTAMP'])
 
-        df = df[['Close', 'Volume']]
+        df = df[['Close', 'Volume']].sort_index()
 
         return df
 
-    except:
-        st.warning("⚠️ NSE API failed → using simulated data")
+    except Exception as e:
+        st.warning(f"⚠️ NSE blocked request → using simulated data")
 
         n = 300
         idx = pd.date_range(end=pd.Timestamp.now(), periods=n, freq="5min")
