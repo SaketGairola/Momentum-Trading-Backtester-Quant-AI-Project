@@ -1,14 +1,14 @@
 import streamlit as st
-import yfinance as yf
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-import time
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from ta.momentum import RSIIndicator
 from ta.trend import SMAIndicator
 from sklearn.metrics import accuracy_score
+from nsepython import equity_history
+import datetime
 
 # --- 1. CONFIG & UI SETUP ---
 st.set_page_config(page_title="Live ML Backtester | IIMA Quant", page_icon="⚡", layout="wide")
@@ -18,7 +18,7 @@ st.caption("Live NSE 1-Min Data | Machine Learning Execution | #QuantFinance")
 # --- 2. SIDEBAR ---
 with st.sidebar:
     st.header("⚙️ 1. Asset & Timeframe")
-    ticker = st.selectbox("NSE Ticker", ["RELIANCE.NS", "IRCON.NS", "JWL.NS", "^NSEI"])
+    ticker = st.selectbox("NSE Ticker", ["RELIANCE", "IRCON", "JWL"])
     days = st.slider("Lookback Period (Days)", 1, 7, 7, help="Yahoo Finance 1m limit is 7 days.")
     
     st.markdown("---")
@@ -39,35 +39,45 @@ with st.sidebar:
         st.cache_data.clear()
 
 # --- 3. DATA ENGINE & FEATURE ENGINEERING ---
-@st.cache_data(show_spinner="Fetching Live NSE Data...")
+@st.cache_data(show_spinner="Fetching NSE Data...")
+def load_data(symbol, days):
+    end = datetime.date.today()
+    start = end - datetime.timedelta(days=days)
 
-def load_data(tkr, d):
-    if d > 5:
-        interval = "5m"
-    else:
-        interval = "1m"
+    try:
+        data = equity_history(
+            symbol,
+            "EQ",
+            start.strftime("%d-%m-%Y"),
+            end.strftime("%d-%m-%Y")
+        )
 
-    for _ in range(3):  # retry 3 times
-        try:
-            df = yf.download(tkr, period=f"{d}d", interval=interval, progress=False)
-            if not df.empty:
-                break
-        except:
-            df = pd.DataFrame()
-        time.sleep(1)
+        df = pd.DataFrame(data)
 
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+        df['Close'] = df['CH_CLOSING_PRICE']
+        df['Volume'] = df['CH_TOT_TRADED_QTY']
+        df.index = pd.to_datetime(df['CH_TIMESTAMP'])
 
-    return df
+        df = df[['Close', 'Volume']]
+
+        return df
+
+    except:
+        st.warning("⚠️ NSE API failed → using simulated data")
+
+        n = 300
+        idx = pd.date_range(end=pd.Timestamp.now(), periods=n, freq="5min")
+
+        price = 2500 + np.cumsum(np.random.normal(0, 2, n))
+        volume = np.random.randint(1000, 5000, n)
+
+        return pd.DataFrame({
+            "Close": price,
+            "Volume": volume
+        }, index=idx)
 
 data = load_data(ticker, days)
-if data.empty and ticker.endswith(".NS"):
-    st.warning("⚠️ NSE data unreliable on Yahoo. Switching to fallback ticker (AAPL).")
-    data = load_data("AAPL", days)
-if data.empty:
-    st.error("No data returned. The market might be closed or the ticker is invalid.")
-    st.stop()
+
 
 df = data[['Close', 'Volume']].copy()
 df['ret'] = df['Close'].pct_change()
