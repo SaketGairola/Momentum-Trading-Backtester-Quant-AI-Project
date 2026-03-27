@@ -7,3 +7,4 @@ scipy
 xgboost
 ta
 scikit-learn
+nsepython
