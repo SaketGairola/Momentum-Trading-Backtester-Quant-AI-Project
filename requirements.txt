@@ -7,4 +7,3 @@ scipy
 xgboost
 ta
 scikit-learn
-time
